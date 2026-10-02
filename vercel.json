@@ -2,7 +2,6 @@
   "version": 2,
   "framework": null,
   "devCommand": null,
-  "public": true,
   "crons": [
     {
       "path": "/api/cron-agenda",
