@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Direcionamento de Onboarding &bull; Sankhya x Hub</title>
+  <!-- Google Fonts: Plus Jakarta Sans, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    h1, h2, h3, h4, .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .gradient-header {
+      background: radial-gradient(130% 120% at 50% 0%, #0f172a 0%, #092c4c 50%, #004d84 100%);
+    }
+    @keyframes pulseSoft {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.85; transform: scale(0.98); }
+    }
+    .pulse-subtle { animation: pulseSoft 3s ease-in-out infinite; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
+
+  <!-- Header Executivo Institucional -->
+  <header class="gradient-header text-white pt-10 pb-28 shadow-xl border-b border-slate-700/50 relative overflow-hidden">
+    <div class="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div class="flex items-center space-x-3">
+          <span class="inline-flex items-center justify-center p-2.5 bg-white/10 backdrop-blur-md text-emerald-400 rounded-2xl border border-white/15 shadow-inner">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </span>
+          <div>
+            <span class="text-xs uppercase tracking-widest font-bold text-emerald-400 bg-emerald-950/70 px-3 py-1 rounded-full border border-emerald-500/30">
+              Assistente Executivo de Implantação
+            </span>
+          </div>
+        </div>
+
+        <div class="text-right hidden sm:block">
+          <div class="text-[11px] text-emerald-400 flex items-center justify-end space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Inteligência Proativa &bull; Gemini AI</span>
+          </div>
+        </div>
+      </div>
+
+      <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight font-display">
+        Direcionar Onboarding Pós-Reunião
+      </h1>
+      <p class="mt-2 text-slate-200 text-sm sm:text-base max-w-2xl leading-relaxed">
+        Defina o responsável técnico do cliente em linguagem natural. Nosso assistente interpretará a instrução, preencherá o link exclusivo e enviará o convite automaticamente.
+      </p>
+    </div>
+  </header>
+
+  <!-- Container Principal -->
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 -mt-16 pb-20 relative z-20">
+
+    <!-- Loading State Inicial -->
+    <div id="loadingCard" class="bg-white rounded-3xl p-8 shadow-xl border border-slate-200 flex items-center justify-center space-x-3 text-slate-600">
+      <svg class="animate-spin h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <span class="text-sm font-semibold">Localizando informações da reunião na agenda...</span>
+    </div>
+
+    <!-- Error Banner -->
+    <div id="errorBanner" class="hidden mb-6 bg-rose-50 border border-rose-300 rounded-2xl p-5 shadow-lg text-sm text-rose-800 flex items-start space-x-3">
+      <svg class="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <div class="flex-1">
+        <strong class="font-bold block text-rose-900">Atenção ao Direcionamento:</strong>
+        <span id="errorMessage">Ocorreu um erro ao processar.</span>
+      </div>
+    </div>
+
+    <!-- Success Banner -->
+    <div id="successBanner" class="hidden mb-6 bg-emerald-50 border border-emerald-300 rounded-3xl p-6 sm:p-8 shadow-2xl">
+      <div class="flex items-start">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-md">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div class="ml-5 flex-1">
+          <div class="inline-block text-[11px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-200/70 px-2.5 py-0.5 rounded-full mb-1">
+            Status: Convite Disparado
+          </div>
+          <h2 class="text-xl font-bold text-emerald-950 font-display">Onboarding Direcionado com Sucesso!</h2>
+          <p class="text-sm text-emerald-800 mt-1 leading-relaxed" id="successMessage">
+            O e-mail de convite oficial com o link de parametrização foi enviado ao responsável técnico e você foi notificado.
+          </p>
+
+          <!-- Detalhes do Envio -->
+          <div class="mt-4 p-4 bg-white/95 rounded-2xl border border-emerald-200 text-xs text-slate-700 space-y-2 shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <span class="font-bold text-slate-900">Destinatário Principal:</span>
+              <span id="resDestinatario" class="font-mono text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded"></span>
+            </div>
+            <div id="resCopiasRow" class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <span class="font-bold text-slate-900">Cópias (CC):</span>
+              <span id="resCopias" class="font-mono text-slate-600"></span>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2">
+              <span class="font-bold text-slate-900">Empresa Identificada:</span>
+              <span id="resEmpresa" class="font-semibold text-slate-800"></span>
+            </div>
+            <div class="pt-2">
+              <span class="font-bold text-slate-900 block mb-1">Link Exclusivo Gerado para o Cliente:</span>
+              <div class="flex items-center space-x-2">
+                <input id="resLinkInput" readonly class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none">
+                <button type="button" id="btnCopiarLink" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all flex-shrink-0">
+                  Copiar
+                </button>
+                <a id="resLinkBtn" href="#" target="_blank" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex-shrink-0 flex items-center space-x-1">
+                  <span>Abrir</span>
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 flex items-center space-x-4">
+            <button type="button" onclick="location.reload()" class="text-xs text-emerald-800 hover:text-emerald-950 font-semibold underline cursor-pointer">
+              &larr; Direcionar outra reunião
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card de Conteúdo Principal -->
+    <div id="mainCard" class="hidden bg-white rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden">
+      
+      <!-- Topo do Card com Dados da Reunião -->
+      <div class="bg-slate-900 text-white p-6 sm:p-7 border-b border-slate-800">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+          <span id="meetingStatusBadge" class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 font-display">
+            Aguardando Destinatário
+          </span>
+          <span id="meetingTimeText" class="text-xs text-slate-400 font-mono">
+            Concluída recentemente
+          </span>
+        </div>
+
+        <h2 id="meetingTitleText" class="text-xl sm:text-2xl font-bold font-display text-white">
+          Reunião de Implantação
+        </h2>
+
+        <p id="meetingDescText" class="text-xs text-slate-300 mt-1 line-clamp-2">
+          Carregando participantes...
+        </p>
+
+        <!-- Pílulas de Participantes da Agenda -->
+        <div id="attendeesSection" class="mt-4 pt-4 border-t border-slate-800/80">
+          <span class="text-[11px] uppercase tracking-wider font-bold text-slate-400 block mb-2">
+            Participantes Detectados na Agenda (clique para selecionar):
+          </span>
+          <div id="attendeesContainer" class="flex flex-wrap gap-2">
+            <!-- Badges injetadas dinamicamente -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulário de Direcionamento -->
+      <form id="direcionarForm" class="p-6 sm:p-8 space-y-6">
+        
+        <!-- Input em Linguagem Natural com IA -->
+        <div class="bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-slate-50 p-5 rounded-2xl border border-indigo-100/80 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <label for="textoInstrucao" class="text-xs font-bold uppercase tracking-wider text-indigo-950 flex items-center space-x-2">
+              <span class="w-5 h-5 rounded-md bg-indigo-600 text-white inline-flex items-center justify-center text-xs">✨</span>
+              <span>Instrução em Linguagem Natural (IA)</span>
+            </label>
+            <span class="text-[11px] text-indigo-600 font-medium font-mono">Gemini 2.5 Flash</span>
+          </div>
+
+          <p class="text-xs text-slate-600 mb-3 leading-relaxed">
+            Escreva livremente como deseja encaminhar o onboarding. O modelo identificará e-mail principal, nomes, cópias e a empresa:
+          </p>
+
+          <textarea 
+            id="textoInstrucao" 
+            rows="3" 
+            placeholder="Ex: Enviar para ti@acquabrasil.com.br com cópia para marcos@acquabrasil.com.br e diretor@empresa.com"
+            class="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all shadow-inner"
+          ></textarea>
+
+          <!-- Sugestões Rápidas de Prompt -->
+          <div class="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span class="text-slate-400 font-medium">Exemplos rápidos:</span>
+            <button type="button" class="prompt-chip px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors cursor-pointer" data-fill="Enviar para ti@cliente.com.br com cópia para diretoria@cliente.com.br">
+              Com cópia para diretoria
+            </button>
+            <button type="button" class="prompt-chip px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-700 rounded-lg border border-indigo-200 transition-colors cursor-pointer" data-fill="Encaminhar para Roberto Silva (roberto@cliente.com.br), coordenador de TI">
+              Nome + Cargo
+            </button>
+          </div>
+        </div>
+
+        <!-- Campos Estruturados Opcionais (Toggle) -->
+        <div>
+          <button type="button" id="btnToggleCampos" class="text-xs text-slate-500 hover:text-slate-800 font-semibold flex items-center space-x-1 transition-colors cursor-pointer">
+            <span id="toggleCamposIcon">&plus;</span>
+            <span>Editar campos estruturados manualmente (opcional)</span>
+          </button>
+
+          <div id="camposManuais" class="hidden mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="inputEmail" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                E-mail Destinatário Principal
+              </label>
+              <input type="email" id="inputEmail" placeholder="responsavel@cliente.com.br" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            </div>
+
+            <div>
+              <label for="inputNome" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Nome do Responsável
+              </label>
+              <input type="text" id="inputNome" placeholder="Ex: Roberto Silva (TI)" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            </div>
+
+            <div>
+              <label for="inputCopias" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                E-mails em Cópia (separados por vírgula)
+              </label>
+              <input type="text" id="inputCopias" placeholder="diretor@cliente.com.br, ti@cliente.com.br" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none font-mono">
+            </div>
+
+            <div>
+              <label for="inputEmpresa" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Nome da Empresa
+              </label>
+              <input type="text" id="inputEmpresa" placeholder="Ex: Acqua Brasil" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-slate-900 text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-blue-600 focus:outline-none">
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão de Ação Principal -->
+        <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="text-xs text-slate-500">
+            Ao disparar, o cliente receberá o e-mail de onboarding com as views e parametrizações do Sankhya.
+          </div>
+
+          <button 
+            type="submit" 
+            id="btnEnviar" 
+            class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-emerald-500/25 transition-all flex items-center justify-center space-x-2 cursor-pointer flex-shrink-0"
+          >
+            <span id="btnEnviarIcon">🚀</span>
+            <span id="btnEnviarText">Interpretar com IA & Disparar Onboarding</span>
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Card de Reunião Não Informada (Fallback para testes manuais) -->
+    <div id="fallbackManualCard" class="hidden bg-white rounded-3xl p-8 shadow-xl border border-slate-200 text-center space-y-4">
+      <div class="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
+        <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900 font-display">Nenhuma Reunião Selecionada</h3>
+      <p class="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
+        Geralmente você acessa esta página a partir do link no seu e-mail pós-reunião. Você também pode testar simulando uma reunião finalizada:
+      </p>
+      <div class="pt-2 flex flex-wrap justify-center gap-3">
+        <button type="button" id="btnSimularReuniao" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-md">
+          Simular Reunião Concluída Agora
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // Recupera o ID da reunião da URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let meetingId = urlParams.get('id');
+
+    const loadingCard = document.getElementById('loadingCard');
+    const mainCard = document.getElementById('mainCard');
+    const fallbackManualCard = document.getElementById('fallbackManualCard');
+    const errorBanner = document.getElementById('errorBanner');
+    const errorMessage = document.getElementById('errorMessage');
+    const successBanner = document.getElementById('successBanner');
+    const attendeesContainer = document.getElementById('attendeesContainer');
+    const textoInstrucao = document.getElementById('textoInstrucao');
+    const direcionarForm = document.getElementById('direcionarForm');
+    const btnEnviar = document.getElementById('btnEnviar');
+    const btnEnviarText = document.getElementById('btnEnviarText');
+    const btnEnviarIcon = document.getElementById('btnEnviarIcon');
+
+    let currentMeeting = null;
+
+    // Inicialização da Página
+    async function init() {
+      if (!meetingId) {
+        loadingCard.classList.add('hidden');
+        fallbackManualCard.classList.remove('hidden');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/direcionar?id=${encodeURIComponent(meetingId)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success && data.reuniao) {
+          currentMeeting = data.reuniao;
+          renderMeetingDetails(currentMeeting);
+          loadingCard.classList.add('hidden');
+          mainCard.classList.remove('hidden');
+        } else {
+          throw new Error(data.error || 'Reunião não encontrada no sistema.');
+        }
+      } catch (err) {
+        console.warn('Erro ao carregar reunião:', err);
+        loadingCard.classList.add('hidden');
+        // Permite preencher mesmo assim
+        mainCard.classList.remove('hidden');
+        document.getElementById('meetingTitleText').textContent = 'Reunião ID: ' + meetingId;
+      }
+    }
+
+    function renderMeetingDetails(m) {
+      document.getElementById('meetingTitleText').textContent = m.titulo || 'Reunião de Implantação';
+      
+      if (m.fim) {
+        const d = new Date(m.fim);
+        document.getElementById('meetingTimeText').textContent = 'Concluída às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' (' + d.toLocaleDateString('pt-BR') + ')';
+      }
+
+      if (m.status === 'CONVITE_ENVIADO') {
+        const badge = document.getElementById('meetingStatusBadge');
+        badge.textContent = 'Convite Já Enviado';
+        badge.className = 'px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-display';
+      }
+
+      document.getElementById('meetingDescText').textContent = m.descricao || 'Sem descrição cadastrada na agenda.';
+
+      // Preenche sugestão de empresa no campo manual
+      if (m.titulo) {
+        const cleanEmp = m.titulo.replace(/(kickoff|ongoing|implanta[çc][ãa]o|reuni[ãa]o|kenit\s*hub|onboarding|sankhya)/gi, '').replace(/[-–—x|:]+/g, ' ').trim();
+        document.getElementById('inputEmpresa').value = cleanEmp;
+      }
+
+      // Renderiza badges dos participantes
+      attendeesContainer.innerHTML = '';
+      const parts = m.participantes || [];
+      if (parts.length === 0) {
+        attendeesContainer.innerHTML = '<span class="text-xs text-slate-500">Nenhum participante adicional registrado.</span>';
+      } else {
+        parts.forEach(p => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'px-3 py-1 bg-slate-800 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-lg text-xs font-medium transition-colors flex items-center space-x-1.5 cursor-pointer border border-slate-700';
+          btn.innerHTML = `<span>👤</span><span><strong>${p.displayName || p.email.split('@')[0]}</strong> (${p.email})</span>`;
+          btn.addEventListener('click', () => {
+            textoInstrucao.value = `Enviar para ${p.email} (${p.displayName || ''})`;
+            document.getElementById('inputEmail').value = p.email;
+            document.getElementById('inputNome').value = p.displayName || '';
+            textoInstrucao.focus();
+          });
+          attendeesContainer.appendChild(btn);
+        });
+      }
+    }
+
+    // Chips de prompt rápido
+    document.querySelectorAll('.prompt-chip').forEach(chip => {
+      chip.addEventListener('click', function() {
+        textoInstrucao.value = this.getAttribute('data-fill');
+        textoInstrucao.focus();
+      });
+    });
+
+    // Toggle de campos manuais
+    const btnToggle = document.getElementById('btnToggleCampos');
+    const camposManuais = document.getElementById('camposManuais');
+    const toggleIcon = document.getElementById('toggleCamposIcon');
+    btnToggle.addEventListener('click', () => {
+      const isHidden = camposManuais.classList.contains('hidden');
+      camposManuais.classList.toggle('hidden');
+      toggleIcon.textContent = isHidden ? '−' : '+';
+    });
+
+    // Submissão do Formulário
+    direcionarForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      errorBanner.classList.add('hidden');
+      successBanner.classList.add('hidden');
+
+      const texto = textoInstrucao.value.trim();
+      const directEmail = document.getElementById('inputEmail').value.trim();
+      const directNome = document.getElementById('inputNome').value.trim();
+      const directCopias = document.getElementById('inputCopias').value.trim();
+      const directEmpresa = document.getElementById('inputEmpresa').value.trim();
+
+      if (!texto && !directEmail) {
+        errorMessage.textContent = 'Por favor, digite a instrução no campo de linguagem natural ou preencha o e-mail no formulário manual.';
+        errorBanner.classList.remove('hidden');
+        return;
+      }
+
+      btnEnviar.disabled = true;
+      btnEnviarIcon.textContent = '⏳';
+      btnEnviarText.textContent = 'Processando com IA & Enviando...';
+
+      try {
+        const payload = {
+          id: meetingId,
+          texto,
+          emailDestinatario: directEmail,
+          nomeDestinatario: directNome,
+          emailsCopia: directCopias,
+          nomeEmpresa: directEmpresa
+        };
+
+        const res = await fetch('/api/direcionar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          mainCard.classList.add('hidden');
+          successBanner.classList.remove('hidden');
+
+          document.getElementById('resDestinatario').textContent = `${data.nome ? data.nome + ' ' : ''}<${data.destinatario}>`;
+          document.getElementById('resEmpresa').textContent = data.nomeEmpresa;
+
+          const copiasRow = document.getElementById('resCopiasRow');
+          if (data.copias && data.copias.length > 0) {
+            copiasRow.classList.remove('hidden');
+            document.getElementById('resCopias').textContent = data.copias.join(', ');
+          } else {
+            copiasRow.classList.add('hidden');
+          }
+
+          document.getElementById('resLinkInput').value = data.linkOnboarding;
+          document.getElementById('resLinkBtn').href = data.linkOnboarding;
+
+          document.getElementById('btnCopiarLink').onclick = function() {
+            navigator.clipboard.writeText(data.linkOnboarding);
+            this.textContent = 'Copiado!';
+            setTimeout(() => this.textContent = 'Copiar', 2000);
+          };
+
+          successBanner.scrollIntoView({ behavior: 'smooth' });
+        } else {
+          throw new Error(data.error || 'Erro ao processar direcionamento');
+        }
+      } catch (err) {
+        errorMessage.textContent = err.message || 'Falha na comunicação com o servidor.';
+        errorBanner.classList.remove('hidden');
+        errorBanner.scrollIntoView({ behavior: 'smooth' });
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviarIcon.textContent = '🚀';
+        btnEnviarText.textContent = 'Interpretar com IA & Disparar Onboarding';
+      }
+    });
+
+    // Ação do botão de simulação
+    const btnSimular = document.getElementById('btnSimularReuniao');
+    if (btnSimular) {
+      btnSimular.addEventListener('click', async function() {
+        this.disabled = true;
+        this.textContent = 'Simulando reunião...';
+        try {
+          const res = await fetch('/api/cron-agenda?simular=true');
+          const data = await res.json();
+          if (res.ok && data.reuniao) {
+            window.location.search = `?id=${encodeURIComponent(data.reuniao.id)}`;
+          } else {
+            alert('Erro ao simular: ' + (data.error || 'Falha desconhecida'));
+          }
+        } catch (e) {
+          alert('Erro na requisição de simulação: ' + e.message);
+        } finally {
+          this.disabled = false;
+          this.textContent = 'Simular Reunião Concluída Agora';
+        }
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

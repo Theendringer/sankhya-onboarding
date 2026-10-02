@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "framework": null,
+  "devCommand": null,
+  "public": true,
+  "crons": [
+    {
+      "path": "/api/cron-agenda",
+      "schedule": "*/15 * * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/direcionar",
+      "destination": "/direcionar.html"
+    }
+  ],
+  "functions": {
+    "api/*.ts": {
+      "includeFiles": "templates/**",
+      "memory": 1024,
+      "maxDuration": 15
+    }
+  }
+}
