@@ -21,36 +21,66 @@ function getFirestore(): admin.firestore.Firestore {
     return admin.firestore();
   }
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  let credentials: any = null;
+
+  // 1. Tenta carregar pela variável de ambiente FIREBASE_SERVICE_ACCOUNT (Vercel)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      return admin.firestore();
-    } catch (err) {
-      console.warn('Falha ao processar FIREBASE_SERVICE_ACCOUNT_KEY:', err);
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch (err: any) {
+      console.warn('Falha ao processar FIREBASE_SERVICE_ACCOUNT:', err.message);
+    }
+  }
+  // 1.1 Suporte adicional para FIREBASE_SERVICE_ACCOUNT_KEY (retrocompatibilidade)
+  else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    } catch (err: any) {
+      console.warn('Falha ao processar FIREBASE_SERVICE_ACCOUNT_KEY:', err.message);
+    }
+  }
+  // 2. Tenta variáveis individuais (fallback)
+  else if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+    credentials = {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      projectId: process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_PROJECT_ID,
+    };
+  }
+  // 3. Fallback para arquivo físico local (localhost)
+  else {
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'firebase-key.json'),
+      path.resolve(__dirname, '..', 'firebase-key.json'),
+      path.resolve(__dirname, 'firebase-key.json')
+    ];
+
+    for (const filePath of possiblePaths) {
+      if (fs.existsSync(filePath)) {
+        try {
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
+          credentials = JSON.parse(fileContent);
+          break;
+        } catch (err) {
+          console.warn(`Erro ao ler ${filePath}:`, err);
+        }
+      }
     }
   }
 
-  const possiblePaths = [
-    path.resolve(process.cwd(), 'firebase-key.json'),
-    path.resolve(__dirname, '..', 'firebase-key.json'),
-    path.resolve(__dirname, 'firebase-key.json')
-  ];
+  if (credentials) {
+    // Garante a correção de quebras de linha da chave privada
+    if (credentials.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    }
 
-  for (const filePath of possiblePaths) {
-    if (fs.existsSync(filePath)) {
-      try {
-        const fileContent = fs.readFileSync(filePath, 'utf-8');
-        const serviceAccount = JSON.parse(fileContent);
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
-        return admin.firestore();
-      } catch (err) {
-        console.warn(`Erro ao ler ${filePath}:`, err);
-      }
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(credentials)
+      });
+      return admin.firestore();
+    } catch (err) {
+      console.warn('Erro ao inicializar Firebase Admin com credenciais fornecidas:', err);
     }
   }
 

@@ -5,6 +5,12 @@ import * as path from 'path';
 import { JWT } from 'google-auth-library';
 import nodemailer from 'nodemailer';
 
+const google = {
+  auth: {
+    JWT
+  }
+};
+
 interface VercelRequest extends IncomingMessage {
   body: any;
   query: { [key: string]: string | string[] };
@@ -26,36 +32,66 @@ function getFirestore(): admin.firestore.Firestore {
     return admin.firestore();
   }
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+  let credentials: any = null;
+
+  // 1. Tenta carregar pela variável de ambiente FIREBASE_SERVICE_ACCOUNT (Vercel)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      return admin.firestore();
-    } catch (err) {
-      console.warn('Falha ao processar FIREBASE_SERVICE_ACCOUNT_KEY:', err);
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch (err: any) {
+      console.warn('Falha ao processar FIREBASE_SERVICE_ACCOUNT:', err.message);
+    }
+  }
+  // 1.1 Suporte adicional para FIREBASE_SERVICE_ACCOUNT_KEY (retrocompatibilidade)
+  else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    } catch (err: any) {
+      console.warn('Falha ao processar FIREBASE_SERVICE_ACCOUNT_KEY:', err.message);
+    }
+  }
+  // 2. Tenta variáveis individuais (fallback)
+  else if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+    credentials = {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+      projectId: process.env.FIREBASE_PROJECT_ID || process.env.GOOGLE_PROJECT_ID,
+    };
+  }
+  // 3. Fallback para arquivo físico local (localhost)
+  else {
+    const possiblePaths = [
+      path.resolve(process.cwd(), 'firebase-key.json'),
+      path.resolve(__dirname, '..', 'firebase-key.json'),
+      path.resolve(__dirname, 'firebase-key.json')
+    ];
+
+    for (const filePath of possiblePaths) {
+      if (fs.existsSync(filePath)) {
+        try {
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
+          credentials = JSON.parse(fileContent);
+          break;
+        } catch (err) {
+          console.warn(`Erro ao ler ${filePath}:`, err);
+        }
+      }
     }
   }
 
-  const possiblePaths = [
-    path.resolve(process.cwd(), 'firebase-key.json'),
-    path.resolve(__dirname, '..', 'firebase-key.json'),
-    path.resolve(__dirname, 'firebase-key.json')
-  ];
+  if (credentials) {
+    // Garante a correção de quebras de linha da chave privada
+    if (credentials.private_key) {
+      credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+    }
 
-  for (const filePath of possiblePaths) {
-    if (fs.existsSync(filePath)) {
-      try {
-        const fileContent = fs.readFileSync(filePath, 'utf-8');
-        const serviceAccount = JSON.parse(fileContent);
-        admin.initializeApp({
-          credential: admin.credential.cert(serviceAccount)
-        });
-        return admin.firestore();
-      } catch (err) {
-        console.warn(`Erro ao ler ${filePath}:`, err);
-      }
+    try {
+      admin.initializeApp({
+        credential: admin.credential.cert(credentials)
+      });
+      return admin.firestore();
+    } catch (err) {
+      console.warn('Erro ao inicializar Firebase Admin com credenciais fornecidas:', err);
     }
   }
 
@@ -67,54 +103,65 @@ function getFirestore(): admin.firestore.Firestore {
 // 2. AUTENTICAÇÃO COM GOOGLE CALENDAR API (SERVICE ACCOUNT)
 // -----------------------------------------------------------------------------
 function getGoogleAuth(): JWT {
-  let clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  let credentials: any = null;
 
-  if (!clientEmail || !privateKey) {
-    // Tenta carregar do firebase-key.json ou FIREBASE_SERVICE_ACCOUNT_KEY
-    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-      try {
-        const sa = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-        clientEmail = sa.client_email;
-        privateKey = sa.private_key;
-      } catch (e) {
-        // noop
-      }
+  // 1. Tenta carregar pela variável de ambiente FIREBASE_SERVICE_ACCOUNT (Vercel)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch (err: any) {
+      throw new Error('Falha ao fazer parse da variável FIREBASE_SERVICE_ACCOUNT. Verifique se o JSON é válido: ' + err.message);
     }
   }
-
-  if (!clientEmail || !privateKey) {
+  // 1.1 Suporte adicional para FIREBASE_SERVICE_ACCOUNT_KEY (retrocompatibilidade)
+  else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    try {
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+    } catch (err: any) {
+      throw new Error('Falha ao fazer parse da variável FIREBASE_SERVICE_ACCOUNT_KEY. Verifique se o JSON é válido: ' + err.message);
+    }
+  }
+  // 2. Tenta variáveis individuais (fallback)
+  else if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+    credentials = {
+      client_email: process.env.GOOGLE_CLIENT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    };
+  }
+  // 3. Fallback para arquivo físico local (localhost)
+  else {
     const possiblePaths = [
       path.resolve(process.cwd(), 'firebase-key.json'),
       path.resolve(__dirname, '..', 'firebase-key.json'),
       path.resolve(__dirname, 'firebase-key.json')
     ];
 
-    for (const filePath of possiblePaths) {
-      if (fs.existsSync(filePath)) {
+    for (const localKeyPath of possiblePaths) {
+      if (fs.existsSync(localKeyPath)) {
         try {
-          const sa = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-          clientEmail = sa.client_email;
-          privateKey = sa.private_key;
+          credentials = JSON.parse(fs.readFileSync(localKeyPath, 'utf8'));
           break;
-        } catch (e) {
-          // noop
+        } catch {
+          // ignora e continua
         }
       }
     }
   }
 
-  if (!clientEmail || !privateKey) {
-    throw new Error('Credenciais de Service Account da Google API não encontradas.');
+  if (!credentials || !credentials.client_email || !credentials.private_key) {
+    throw new Error('Credenciais de Service Account não encontradas nem na variável FIREBASE_SERVICE_ACCOUNT nem em firebase-key.json');
   }
 
-  // Trata quebras de linha na private key se vier formatada como string plana
-  const formattedKey = privateKey.replace(/\\n/g, '\n');
+  // Garante a correção de quebras de linha da chave privada
+  const privateKey = credentials.private_key.replace(/\\n/g, '\n');
 
-  return new JWT({
-    email: clientEmail,
-    key: formattedKey,
-    scopes: ['https://www.googleapis.com/auth/calendar.readonly']
+  return new google.auth.JWT({
+    email: credentials.client_email,
+    key: privateKey,
+    scopes: [
+      'https://www.googleapis.com/auth/calendar.readonly',
+      'https://www.googleapis.com/auth/calendar.events.readonly'
+    ]
   });
 }
 
