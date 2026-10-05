@@ -1,13 +1,5 @@
 {
   "version": 2,
-  "framework": null,
-  "devCommand": null,
-  "crons": [
-    {
-      "path": "/api/cron-agenda",
-      "schedule": "*/15 * * * *"
-    }
-  ],
   "rewrites": [
     {
       "source": "/",
